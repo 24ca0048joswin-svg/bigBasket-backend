@@ -5,8 +5,8 @@ const nodemailer = require("nodemailer");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const transporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
+    service: 'gmail',
+    host: 'smtp.gmail.com',
     auth: {
         user: process.env.EMAIL,
         pass: process.env.EMAIL_PASSWORD,
@@ -166,6 +166,7 @@ async function changeOrderStatus(req, res) {
 }
 
 async function changePaymentStatus(req, res) {
+
     try {
         const { paymentStatus, id } = req.body;
 
