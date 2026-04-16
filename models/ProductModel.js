@@ -1,10 +1,14 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-   productUrl:{
-    type:String,
-    required:true,
-   },
+  productUrl: {
+    type: String,
+    required: true,
+  },
+  productImageId: {
+    type: String,
+    required: true,
+  },
   title: {
     type: String,
     required: true,
@@ -18,17 +22,17 @@ const productSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  isHarDinSasta:{
+  isHarDinSasta: {
     type: Boolean,
     required: true,
   },
-  discountPercentage:{
-    type:Number,
-    required:true,
+  discountPercentage: {
+    type: Number,
+    required: true,
   },
-  category:{
-    type:String,
-    required:true,
+  category: {
+    type: String,
+    required: true,
   }
 });
 

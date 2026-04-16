@@ -65,35 +65,4 @@ async function login(req, res) {
     }
 }
 
-async function displayProductsOnCategory(req, res) {
-    try {
-        const { category } = req.body;
-        const products = await ProductModel.find({'category':category});
-        if (products) {
-            res.json({
-                status: 'Sucess',
-                length: products.length,
-                products,
-            });
-        }
-    } catch (err) {
-        console.log(`An error occured : ${err}`)
-    }
-}
-
-async function displayProducts(req, res) {
-    try {
-        const products = await ProductModel.find();
-        if (products) {
-            res.json({
-                status: 'Sucess',
-                length: products.length,
-                products,
-            });
-        }
-    } catch (err) {
-        console.log(`An error occured : ${err}`)
-    }
-}
-
-module.exports = { register, login, displayProductsOnCategory, displayProducts};
+module.exports = { register, login};

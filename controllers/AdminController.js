@@ -2,16 +2,10 @@ const AdminModel = require("../models/AdminModel.js");
 const ProductModel = require("../models/ProductModel.js");
 const UserModel = require("../models/UserModel.js");
 const { setUser } = require("../middleware/auth.js");
+const bcrypt = require('bcrypt');
 const { unlinkSync } = require("node:fs");
 const path = require("path");
-const bcrypt = require('bcrypt');
 
-async function discountCalculate(originalPrice, sellingPrice) {
-    let discountAmount = originalPrice - sellingPrice;
-    let discountPercentage = (discountAmount / originalPrice) * 100;
-    discountPercentage = discountPercentage.toFixed(0);
-    return discountPercentage;
-}
 
 async function register(req, res) {
     try {
@@ -394,4 +388,4 @@ async function changePassword(req, res) {
     }
 }
 
-module.exports = { register, login, addProduct, removeProduct, displayProducts, displayOneProduct, editProduct, displayUsers, displayOneUser, updateNameAndMail, removeUser, changePassword }
+module.exports = { register, login, displayUsers, displayOneUser, updateNameAndMail, removeUser, changePassword }
