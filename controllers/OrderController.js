@@ -1,17 +1,20 @@
 const OrderModel = require("../models/OrderModel");
 const ProductModel = require("../models/ProductModel.js");
 const UserModel = require("../models/UserModel.js");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+// const nodemailer = require("nodemailer");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    host: 'smtp.gmail.com',
-    auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_PASSWORD,
-    }
-});
+// const transporter = nodemailer.createTransport({
+//     service: 'gmail',
+//     host: 'smtp.gmail.com',
+//     auth: {
+//         user: process.env.EMAIL,
+//         pass: process.env.EMAIL_PASSWORD,
+//     }
+// });
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function makeOrder(req, res) {
     try {
@@ -40,15 +43,22 @@ async function makeOrder(req, res) {
         const cust = await UserModel.findOne({ _id: customerId })
 
         if (order) {
-            const mail = {
-                from: '"Big Basket" <bigbasket@gmail.com>',
-                to: `'"${cust.username}" <${cust.email}>'`,
+            // let info = await transporter.sendMail(mail);
+            const { data, error } = await resend.emails.send({
+                from: '"Big Basket" <joswin630@gmail.com>',
+                // to: [`${cust.email}`],
+                to: [`joswin630@gmail.com`],
                 subject: "Your Order has been placed",
-                text: `Your Order ${orderNo} has been placed successfully.`,
                 html: `<p>Your Order ${orderNo} has been placed successfully.</p>`,
-            }
+            });
 
-            let info = await transporter.sendMail(mail);
+            console.log(data);
+
+            if (error) {
+                console.log(`Email error:${error}`);
+                console.log(error);
+                return
+            }
             res.json({
                 status: 'success',
                 msg: 'Order has been saved'
@@ -143,15 +153,17 @@ async function changeOrderStatus(req, res) {
         if (!updatedOrder) {
             return res.status(404).json({ message: "Order not found" });
         } else {
-            const mail = {
+            // let info = await transporter.sendMail(mail);
+            const { data, error } = await resend.emails.send({
                 from: '"Big Basket" <bigbasket@gmail.com>',
-                to: `'"${username}" <${email}>'`,
+                to: [`${email}`],
                 subject: `Your Order has been ${orderStatus}`,
-                text: `Your Order ${orderNo} has been ${orderStatus} successfully.`,
                 html: `<p>Your Order ${orderNo} has been ${orderStatus} successfully.</p>`,
-            }
+            });
 
-            let info = await transporter.sendMail(mail);
+            if (error) {
+                console.log(`Email error:${error}`);
+            }
         }
 
 
