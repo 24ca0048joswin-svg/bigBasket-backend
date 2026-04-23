@@ -1,8 +1,11 @@
 const OrderModel = require("../models/OrderModel");
 const ProductModel = require("../models/ProductModel.js");
 const UserModel = require("../models/UserModel.js");
+const path = require("path");
+const fs = require("fs");
 const { Resend } = require("resend");
 // const nodemailer = require("nodemailer");
+const generateInvoice = require("../middleware/invoicePdf.js")
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // const transporter = nodemailer.createTransport({
@@ -22,50 +25,88 @@ async function makeOrder(req, res) {
 
         const orderNo = `ORD-${Date.now().toString().slice(-8)}`;
 
+
         const data = {
             orderNo,
             customer: customerId,
             totalPrice: totalPrice,
             paymentStatus: paymentOnline,
             shippingOrBillingAddress: {
-                firstName: firstName,
-                lastName: lastName,
-                mobileNo: mobileNo,
-                streetAddress: streetAddress,
-                townCity: townCity,
-                state: state,
-                country: country,
-                zipcode: zipcode,
+                firstName, lastName, mobileNo, streetAddress, townCity, state, country, zipcode,
             },
             items: items,
         }
+
+        // let ids = []
+        // for(item in items){
+        //     ids.push(item.productId);
+        // }
+        const ids = items.map(item => (item.productId));
+        // console.log(ids);
+
         const order = await OrderModel.create(data);
-        const cust = await UserModel.findOne({ _id: customerId })
+        const cust = await UserModel.findOne({ _id: customerId });
+
+        const products = await ProductModel.find({ _id: { $in: ids } });
+        // console.log(`products: ${products}`)
+
+        const formattedItems = items.map(item => {
+            const productDetail = products.find(p => p._id.toString() === item.productId.toString());
+            return {
+                name: productDetail.title,
+                quantity: item.quantity,
+                price: productDetail.sellingPrice,
+                tax: 18
+            };
+        });
 
         if (order) {
-            // let info = await transporter.sendMail(mail);
-            const { data, error } = await resend.emails.send({
+            const invoicePath = path.join(__dirname, `invoices/invoice-${orderNo}.pdf`);
+
+            const invoiceData = {
+                invoiceNumber: orderNo,
+                date: new Date().toLocaleDateString("en-IN"),
+                dueDate: new Date().toLocaleDateString("en-IN"),
+                client: {
+                    name: `${firstName} ${lastName}`,
+                    address: streetAddress,
+                    city: townCity,
+                    country: country,
+                    postal: zipcode
+                },
+                items: formattedItems
+            };
+
+            // console.log(invoiceData)
+
+            await generateInvoice(invoiceData, invoicePath);
+
+            console.log(invoicePath)
+            const attachment = fs.readFileSync(`${invoicePath}`).toString('base64');
+
+            console.log(cust.email);
+            const { data: emailData, error } = await resend.emails.send({
                 from: '"Big Basket" <joswin630@gmail.com>',
-                // to: [`${cust.email}`],
-                to: [`joswin630@gmail.com`],
+                to: [`${cust.email}`],
                 subject: "Your Order has been placed",
-                html: `<p>Your Order ${orderNo} has been placed successfully.</p>`,
+                html: `<p>Your Order ${orderNo} has been placed successfully. Find your invoice attached.</p>`,
+                attachments: [{ filename: 'invoice.pdf', content: attachment }]
             });
 
-            console.log(data);
-
             if (error) {
-                console.log(`Email error:${error}`);
-                console.log(error);
-                return
+                console.log(`Email error: ${error}`);
+                console.log(error)
             }
+
             res.json({
                 status: 'success',
-                msg: 'Order has been saved'
+                msg: 'Order has been saved and invoice generated',
+                orderNo: orderNo
             });
         }
     } catch (err) {
-        console.log(`make order error: ${err}`)
+        console.log(`make order error: ${err}`);
+        res.status(500).json({ status: 'error', msg: 'Internal server error' });
     }
 }
 
@@ -206,4 +247,18 @@ async function changePaymentStatus(req, res) {
     }
 }
 
-module.exports = { makeOrder, checkoutSession, getAllOrders, getOneOrder, changePaymentStatus, changeOrderStatus }
+async function getCustomerOrders(req, res) {
+    try {
+        const { custId } = req.body;
+        const orders = await OrderModel.find({ customer: custId })
+            // .select('items')
+            .sort({ date: -1 });
+
+        res.status(200).json(orders);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Server error while fetching orders' });
+    }
+};
+
+module.exports = { makeOrder, checkoutSession, getAllOrders, getOneOrder, changePaymentStatus, changeOrderStatus, getCustomerOrders }
