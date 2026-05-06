@@ -159,7 +159,7 @@ async function makeOrder(req, res) {
 
             console.log(cust.email);
             const { data: emailData, error } = await resend.emails.send({
-                from: '<Big Basket>@venauxbi.resend.app',
+                from: 'onboarding@resend.dev',
                 to: [`${cust.email}`],
                 subject: "Your Order has been placed",
                 html: `<p>Your Order ${orderNo} has been placed successfully. Find your invoice attached.</p>`,
