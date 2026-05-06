@@ -65,7 +65,8 @@ async function makeOrder(req, res) {
 
 
         if (order) {
-            const invoicePath = path.join(__dirname, `invoices/invoice-${orderNo}.pdf`);
+            const invoicePath = path.join(__dirname, `../invoices/invoice-${orderNo}.pdf`);
+            console.log(invoicePath);
 
             const invoiceData = {
                 invoiceNumber: orderNo,
@@ -90,7 +91,6 @@ async function makeOrder(req, res) {
 
             console.log(formattedItems)
             formattedItems = items.map(item => {
-                console.log('product', products[0]._id.toString());
                 const productDetail = products.find(p => p._id.toString() === item.productId.toString());
                 // console.log('Product detail', productDetail);
                 if (productDetail) {
@@ -106,7 +106,6 @@ async function makeOrder(req, res) {
 
             formattedItems.forEach(item => {
                 const productDetail = products.find(p => p._id.toString() === item.productId.toString());
-                console.log(productDetail);
                 const qty = item.quantity;
                 const itemGst = (item.price * 0.18) * qty;
 
@@ -149,7 +148,7 @@ async function makeOrder(req, res) {
                         ...categoryUpdates
                     }
                 },
-                { upsert: true, new: true }
+                { returnDocument: true, new: true }
             );
 
             await generateInvoice(invoiceData, invoicePath);
@@ -157,7 +156,6 @@ async function makeOrder(req, res) {
             console.log(invoicePath)
             // const attachment = fs.readFileSync(`${invoicePath}`).toString('base64');
 
-            console.log(cust.email);
             // const { data: emailData, error } = await resend.emails.send({
             //     from: 'onboarding@resend.dev',
             //     to: [`${cust.email}`],
