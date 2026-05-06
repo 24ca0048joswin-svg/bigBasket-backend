@@ -1,5 +1,6 @@
 const OrderModel = require("../models/OrderModel");
 const ProductModel = require("../models/ProductModel.js");
+const AnalyticsModel = require("../models/AnalyticsModel.js");
 const UserModel = require("../models/UserModel.js");
 const path = require("path");
 const fs = require("fs");
@@ -25,7 +26,6 @@ async function makeOrder(req, res) {
 
         const orderNo = `ORD-${Date.now().toString().slice(-8)}`;
 
-
         const data = {
             orderNo,
             customer: customerId,
@@ -50,15 +50,20 @@ async function makeOrder(req, res) {
         const products = await ProductModel.find({ _id: { $in: ids } });
         // console.log(`products: ${products}`)
 
-        const formattedItems = items.map(item => {
+        let formattedItems = items.map(item => {
+            console.log('product', products[0]._id.toString());
             const productDetail = products.find(p => p._id.toString() === item.productId.toString());
-            return {
-                name: productDetail.title,
-                quantity: item.quantity,
-                price: productDetail.sellingPrice,
-                tax: 18
-            };
+            // console.log('Product detail', productDetail);
+            if (productDetail) {
+                return {
+                    name: productDetail.title,
+                    quantity: item.quantity,
+                    price: productDetail.sellingPrice,
+                    tax: 18
+                };
+            }
         });
+
 
         if (order) {
             const invoicePath = path.join(__dirname, `invoices/invoice-${orderNo}.pdf`);
@@ -78,6 +83,75 @@ async function makeOrder(req, res) {
             };
 
             // console.log(invoiceData)
+
+
+            let totalQty = 0;
+            let totalGst = 0;
+            const categoryUpdates = {};
+
+            console.log(formattedItems)
+            formattedItems = items.map(item => {
+                console.log('product', products[0]._id.toString());
+                const productDetail = products.find(p => p._id.toString() === item.productId.toString());
+                // console.log('Product detail', productDetail);
+                if (productDetail) {
+                    return {
+                        productId: productDetail._id,
+                        name: productDetail.title,
+                        quantity: item.quantity,
+                        price: productDetail.sellingPrice,
+                        tax: 18
+                    };
+                }
+            });
+
+            formattedItems.forEach(item => {
+                const productDetail = products.find(p => p._id.toString() === item.productId.toString());
+                console.log(productDetail);
+                const qty = item.quantity;
+                const itemGst = (item.price * 0.18) * qty;
+
+                totalQty += qty;
+                totalGst += itemGst;
+
+                if (productDetail && productDetail.category) {
+                    let category = productDetail.category;
+                    if (category == "Fresh Vegetables")
+                        category = "vegetables";
+                    else if (category == "Exotic Fruits")
+                        category = "fruits";
+                    else if (category == "ghee")
+                        category = "ghee"
+                    else if (category == "Nandini")
+                        category = "nandini"
+                    else if (category == "Tea")
+                        category = "tea";
+                    const catKey = `salesByCategories.${category}`;
+                    categoryUpdates[catKey] = qty;
+                }
+            });
+
+            const monthNames = ["January", "Febrauary", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"];
+            const currentMonth = monthNames[new Date().getMonth()];
+            const monthKey = `salesInEveryMonth.month.${currentMonth}`;
+            const date = new Date();
+            const year = date.getFullYear();
+
+            await AnalyticsModel.findOneAndUpdate(
+                {year},
+                {
+                    $inc: {
+                        totalSales: totalPrice,
+                        totalOrder: 1,
+                        gstForGovt: totalGst,
+                        totalProductSold: totalQty,
+                        [monthKey]: totalPrice,
+                        ...categoryUpdates
+                    }
+                },
+                { upsert: true, new: true }
+            );
 
             await generateInvoice(invoiceData, invoicePath);
 
@@ -112,17 +186,25 @@ async function makeOrder(req, res) {
 
 async function checkoutSession(req, res) {
     try {
-        const { ids } = req.body;
+        const { ids, cart } = req.body;
         const products = await ProductModel.find({ _id: { $in: ids } });
 
-        const line_items = products.map((item) => ({
-            price_data: {
-                currency: "inr",
-                product_data: { name: item.title },
-                unit_amount: Math.round(item.sellingPrice * 100),
-            },
-            quantity: 1,
-        }));
+        const line_items = products.map((item) => {
+            const currentProduct = cart.find((prod) => {
+                if (prod.id == item._id) {
+                    return prod.quantity;
+                }
+            });
+
+            return {
+                price_data: {
+                    currency: "inr",
+                    product_data: { name: item.title },
+                    unit_amount: Math.round((item.sellingPrice * 1.18) * 100),
+                },
+                quantity: currentProduct.quantity,
+            };
+        });
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],

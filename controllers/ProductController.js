@@ -128,7 +128,7 @@ async function displayOneProduct(req, res) {
             });
         }
     } catch (err) {
-        console.log(`isplayOneProduct error occured : ${err}`)
+        console.log(`displayOneProduct error occured : ${err}`)
     }
 }
 
@@ -242,4 +242,22 @@ async function removeProduct(req, res) {
     }
 }
 
-module.exports = { prodUsingIds, displayProductsOnCategory, displayProducts, displayProducts, displayOneProduct, editProduct, addProduct, removeProduct }
+async function searchProducts(req, res) {
+    try {
+        const { q } = req.body || "";
+        const products = await ProductModel.find({ title: { $regex: q, $options: "i" } });
+
+        return res.status(200).json({
+            status: 'success',
+            data: products
+        })
+    } catch (err) {
+        console.log(`SerachQuery error:${err}`)
+        res.json({
+            status: 'error',
+            data: 'Internal Server error'
+        })
+    }
+}
+
+module.exports = { prodUsingIds, displayProductsOnCategory, displayProducts, displayProducts, displayOneProduct, editProduct, addProduct, removeProduct, searchProducts }

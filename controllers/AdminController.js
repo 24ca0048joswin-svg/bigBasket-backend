@@ -1,3 +1,4 @@
+const AnalyticsModel = require("../models/AnalyticsModel");
 const AdminModel = require("../models/AdminModel.js");
 const ProductModel = require("../models/ProductModel.js");
 const UserModel = require("../models/UserModel.js");
@@ -388,4 +389,30 @@ async function changePassword(req, res) {
     }
 }
 
-module.exports = { register, login, displayUsers, displayOneUser, updateNameAndMail, removeUser, changePassword }
+async function getAnalyticsData(req, res) {
+    try {
+        const date = new Date();
+        const year = date.getFullYear();
+        const data = await AnalyticsModel.findOne({ year: year });
+
+        if (data) {
+            res.json({
+                status: 'success',
+                data,
+            })
+        }else{
+            res.json({
+                status: 'error',
+                msg: 'Data not found'
+            })
+        }
+    } catch (err) {
+        console.log(`getAllData func error: ${err}`)
+        res.json({
+            status: 'error',
+            msg: 'Something went wrong'
+        })
+    }
+}
+
+module.exports = { register, login, displayUsers, displayOneUser, updateNameAndMail, removeUser, changePassword, getAnalyticsData }
