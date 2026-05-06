@@ -113,7 +113,7 @@ function generateInvoice(invoiceData, outputPath = 'invoice.pdf') {
                 .text(item.name, 50, yPosition)
                 .text(item.quantity.toString(), 280, yPosition, { width: 50, align: 'right' })
                 .text(`${item.price.toFixed(2)}`, 350, yPosition, { width: 70, align: 'right' })
-                .text(`${item.tax}`, 440, yPosition, { width: 40, align: 'right' })
+                .text(`${item.tax}%`, 440, yPosition, { width: 40, align: 'right' })
                 .text(`${amount.toFixed(2)}`, 500, yPosition, { width: 50, align: 'right' });
 
             yPosition += 25;

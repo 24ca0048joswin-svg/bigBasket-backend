@@ -4,21 +4,21 @@ const AnalyticsModel = require("../models/AnalyticsModel.js");
 const UserModel = require("../models/UserModel.js");
 const path = require("path");
 const fs = require("fs");
-const { Resend } = require("resend");
-// const nodemailer = require("nodemailer");
+// const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 const generateInvoice = require("../middleware/invoicePdf.js")
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-// const transporter = nodemailer.createTransport({
-//     service: 'gmail',
-//     host: 'smtp.gmail.com',
-//     auth: {
-//         user: process.env.EMAIL,
-//         pass: process.env.EMAIL_PASSWORD,
-//     }
-// });
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    host: 'smtp.gmail.com',
+    auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_PASSWORD,
+    }
+});
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function makeOrder(req, res) {
     try {
@@ -138,7 +138,7 @@ async function makeOrder(req, res) {
             const year = date.getFullYear();
 
             await AnalyticsModel.findOneAndUpdate(
-                {year},
+                { year },
                 {
                     $inc: {
                         totalSales: totalPrice,
@@ -155,21 +155,30 @@ async function makeOrder(req, res) {
             await generateInvoice(invoiceData, invoicePath);
 
             console.log(invoicePath)
-            const attachment = fs.readFileSync(`${invoicePath}`).toString('base64');
+            // const attachment = fs.readFileSync(`${invoicePath}`).toString('base64');
 
             console.log(cust.email);
-            const { data: emailData, error } = await resend.emails.send({
-                from: 'onboarding@resend.dev',
+            // const { data: emailData, error } = await resend.emails.send({
+            //     from: 'onboarding@resend.dev',
+            //     to: [`${cust.email}`],
+            //     subject: "Your Order has been placed",
+            //     html: `<p>Your Order ${orderNo} has been placed successfully. Find your invoice attached.</p>`,
+            //     attachments: [{ filename: 'invoice.pdf', content: attachment }]
+            // });
+
+            const info = await transporter.sendMail({
+                from: '"Big Basket" <joswin630@gmail.com>', 
                 to: [`${cust.email}`],
                 subject: "Your Order has been placed",
                 html: `<p>Your Order ${orderNo} has been placed successfully. Find your invoice attached.</p>`,
-                attachments: [{ filename: 'invoice.pdf', content: attachment }]
+                text: `Your Order ${orderNo} has been placed successfully. Find your invoice attached.`,
+                attachments: [{ filename: 'invoice.pdf', path: invoicePath }]
             });
 
-            if (error) {
-                console.log(`Email error: ${error}`);
-                console.log(error)
-            }
+            // if (error) {
+            //     console.log(`Email error: ${error}`);
+            //     console.log(error)
+            // }
 
             res.json({
                 status: 'success',
