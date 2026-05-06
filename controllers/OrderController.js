@@ -51,7 +51,6 @@ async function makeOrder(req, res) {
         // console.log(`products: ${products}`)
 
         let formattedItems = items.map(item => {
-            console.log('product', products[0]._id.toString());
             const productDetail = products.find(p => p._id.toString() === item.productId.toString());
             // console.log('Product detail', productDetail);
             if (productDetail) {
@@ -160,7 +159,7 @@ async function makeOrder(req, res) {
 
             console.log(cust.email);
             const { data: emailData, error } = await resend.emails.send({
-                from: '"Big Basket" <joswin630@gmail.com>',
+                from: '<Big Basket>@venauxbi.resend.app',
                 to: [`${cust.email}`],
                 subject: "Your Order has been placed",
                 html: `<p>Your Order ${orderNo} has been placed successfully. Find your invoice attached.</p>`,
