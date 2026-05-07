@@ -5,20 +5,27 @@ const UserModel = require("../models/UserModel.js");
 const path = require("path");
 const fs = require("fs");
 // const { Resend } = require("resend");
-const nodemailer = require("nodemailer");
-const generateInvoice = require("../middleware/invoicePdf.js")
+// const nodemailer = require("nodemailer");
+const generateInvoice = require("../middleware/invoicePdf.js");
+const { default: axios } = require("axios");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    host: 'smtp.gmail.com',
-    auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_PASSWORD,
-    }
-});
+// Nodemailer api configuration
+// const transporter = nodemailer.createTransport({
+//     service: 'gmail',
+//     host: 'smtp.gmail.com',
+//     auth: {
+//         user: process.env.EMAIL,
+//         pass: process.env.EMAIL_PASSWORD,
+//     }
+// });
 
+// Resend api configuration
 // const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Brevo api configuration
+const apiKey = process.env.BREVO_API;
+const url = '';
 
 async function makeOrder(req, res) {
     try {
@@ -154,7 +161,7 @@ async function makeOrder(req, res) {
             await generateInvoice(invoiceData, invoicePath);
 
             console.log(invoicePath)
-            // const attachment = fs.readFileSync(`${invoicePath}`).toString('base64');
+            const attachment = fs.readFileSync(`${invoicePath}`).toString('base64');
 
             // const { data: emailData, error } = await resend.emails.send({
             //     from: 'onboarding@resend.dev',
@@ -164,14 +171,39 @@ async function makeOrder(req, res) {
             //     attachments: [{ filename: 'invoice.pdf', content: attachment }]
             // });
 
-            const info = await transporter.sendMail({
-                from: '"Big Basket" <joswin630@gmail.com>', 
-                to: [`${cust.email}`],
+            // const info = await transporter.sendMail({
+            //     from: '"Big Basket" <joswin630@gmail.com>', 
+            //     to: [`${cust.email}`],
+            //     subject: "Your Order has been placed",
+            //     html: `<p>Your Order ${orderNo} has been placed successfully. Find your invoice attached.</p>`,
+            //     text: `Your Order ${orderNo} has been placed successfully. Find your invoice attached.`,
+            //     attachments: [{ filename: 'invoice.pdf', path: invoicePath }]
+            // });
+
+            const emailData = {
+                "sender": {
+                    "name": "Big Basket",
+                    "email": process.env.EMAIL,
+                },
+                "to": [{
+                    "email": cust.email,
+                }],
                 subject: "Your Order has been placed",
-                html: `<p>Your Order ${orderNo} has been placed successfully. Find your invoice attached.</p>`,
-                text: `Your Order ${orderNo} has been placed successfully. Find your invoice attached.`,
-                attachments: [{ filename: 'invoice.pdf', path: invoicePath }]
-            });
+                htmlContent: `<p>Your Order ${orderNo} has been placed successfully. Find your invoice attached.</p>`,
+                attachment: [
+                    {
+                        content: attachment,
+                        name: 'invoice.pdf'
+                    }
+                ]
+            };
+
+            const response = await axios.post('https://api.brevo.com/v3/smtp/email', emailData, {
+                headers: {
+                    'api-key': apiKey,
+                    'Content-Type': 'application/json',
+                }
+            })
 
             // if (error) {
             //     console.log(`Email error: ${error}`);
@@ -283,16 +315,35 @@ async function changeOrderStatus(req, res) {
             return res.status(404).json({ message: "Order not found" });
         } else {
             // let info = await transporter.sendMail(mail);
-            const { data, error } = await resend.emails.send({
-                from: '"Big Basket" <bigbasket@gmail.com>',
-                to: [`${email}`],
-                subject: `Your Order has been ${orderStatus}`,
-                html: `<p>Your Order ${orderNo} has been ${orderStatus} successfully.</p>`,
-            });
+            // const { data, error } = await resend.emails.send({
+            //     from: '"Big Basket" <bigbasket@gmail.com>',
+            //     to: [`${email}`],
+            //     subject: `Your Order has been ${orderStatus}`,
+            //     html: `<p>Your Order ${orderNo} has been ${orderStatus} successfully.</p>`,
+            // });
 
-            if (error) {
-                console.log(`Email error:${error}`);
-            }
+            // if (error) {
+            //     console.log(`Email error:${error}`);
+            // }
+
+            const emailData = {
+                "sender": {
+                    "name": "Big Basket",
+                    "email": process.env.EMAIL,
+                },
+                "to": [{
+                    "email": cust.email,
+                }],
+                subject: `Your Order has been ${orderStatus}`,
+                htmlContent: `<p>Your Order ${orderNo} has been ${orderStatus} successfully.</p>`,
+            };
+
+            const response = await axios.post('https://api.brevo.com/v3/smtp/email', emailData, {
+                headers: {
+                    'api-key': apiKey,
+                    'Content-Type': 'application/json',
+                }
+            })
         }
 
 
