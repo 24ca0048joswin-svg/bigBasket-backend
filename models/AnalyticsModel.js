@@ -22,7 +22,7 @@ const analyticsSchema = new mongoose.Schema({
     },
     salesByCategories: {
         fruits: { type: Number, default: 0 },
-        vegetables : { type: Number, default: 0 },
+        vegetables: { type: Number, default: 0 },
         ghee: { type: Number, default: 0 },
         nandini: { type: Number, default: 0 },
         tea: { type: Number, default: 0 },

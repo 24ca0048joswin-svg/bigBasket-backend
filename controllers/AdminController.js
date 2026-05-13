@@ -1,75 +1,10 @@
 const AnalyticsModel = require("../models/AnalyticsModel");
-const AdminModel = require("../models/AdminModel.js");
 const ProductModel = require("../models/ProductModel.js");
 const UserModel = require("../models/UserModel.js");
 const { setUser } = require("../middleware/auth.js");
 const bcrypt = require('bcrypt');
 const { unlinkSync } = require("node:fs");
 const path = require("path");
-
-
-async function register(req, res) {
-    try {
-        const { username, email, password } = req.body;
-
-        if (username == '' || email == '' || password == '') {
-            res.json({ msg: "Post email, username and password" });
-        }
-
-        const userExists = await AdminModel.findOne({ email });
-        if (userExists) {
-            res.json({
-                "status": "error",
-                "msg": "User already exists"
-            })
-        }
-
-        const user = await AdminModel.create({ username, email, password });
-        if (!user) {
-            res.json({
-                "status": "error",
-                "msg": "Unable to create the user"
-            })
-        } else {
-            res.json({
-                "status": "success",
-                "msg": "Registered user successfully"
-            })
-        }
-    } catch (err) {
-        console.log(`An error occured : ${err}`)
-    }
-}
-
-async function login(req, res) {
-    try {
-        const { email, password } = req.body
-        const user = await AdminModel.findOne({ email });
-        if (!user) {
-            res.json({
-                "status": "error",
-                "msg": "Incorrect email or password"
-            })
-        } else {
-            const isMatchPassword = await user.comparePassword(password);
-            if (isMatchPassword) {
-                const token = setUser(user);
-                res.json({
-                    "status": "success",
-                    "msg": "Login successful",
-                    token,
-                })
-            } else {
-                res.json({
-                    "status": "error",
-                    "msg": "Incorrect email or password"
-                })
-            }
-        }
-    } catch (err) {
-        console.log(`An error occured : ${err}`)
-    }
-}
 
 async function addProduct(req, res) {
     console.log("add product called");
@@ -415,4 +350,4 @@ async function getAnalyticsData(req, res) {
     }
 }
 
-module.exports = { register, login, displayUsers, displayOneUser, updateNameAndMail, removeUser, changePassword, getAnalyticsData }
+module.exports = { displayUsers, displayOneUser, updateNameAndMail, removeUser, changePassword, getAnalyticsData }

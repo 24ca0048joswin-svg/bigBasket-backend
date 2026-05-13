@@ -332,7 +332,7 @@ async function changeOrderStatus(req, res) {
                     "email": process.env.EMAIL,
                 },
                 "to": [{
-                    "email": cust.email,
+                    "email": email,
                 }],
                 subject: `Your Order has been ${orderStatus}`,
                 htmlContent: `<p>Your Order ${orderNo} has been ${orderStatus} successfully.</p>`,
